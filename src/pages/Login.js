@@ -110,12 +110,6 @@ const Login = () => {
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
-          <p className={styles.text}>
-            Don’t have an account?{" "}
-            <span onClick={() => navigate("/signup")} className={styles.link}>
-              Sign Up
-            </span>
-          </p>
         </div>
       </div>
       <div className={styles.rightColumn}>

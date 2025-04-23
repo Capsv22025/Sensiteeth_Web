@@ -10,7 +10,7 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "patient",
+    role: "dentist",
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -140,28 +140,10 @@ const Signup = () => {
               required
             />
           </div>
-          <div className={styles.inputGroup}>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className={styles.input}
-              required
-            >
-              <option value="patient">Patient</option>
-              <option value="dentist">Dentist</option>
-            </select>
-          </div>
           <button type="submit" className={styles.buttonFilledPrimary} disabled={loading}>
             {loading ? "Signing up..." : "Sign Up"}
           </button>
         </form>
-        <p className={styles.text}>
-          Already have an account?{" "}
-          <span onClick={() => navigate("/")} className={styles.link}>
-            Login
-          </span>
-        </p>
       </div>
     </div>
   );
