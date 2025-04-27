@@ -262,9 +262,6 @@ h1.patientDashboardTitle {
   }
 }
 
-
-
-
 .noData {
   text-align: center;
   color: #757575;
@@ -366,7 +363,6 @@ h1.patientDashboardTitle {
   }
 }
 
-
 .modal h3 {
   margin-top: 0;
   color: #385294;
@@ -410,7 +406,6 @@ h1.patientDashboardTitle {
   color: #385294;
 }
 
-
 .inputField{
   width: 100%;
   padding: 15px 20px;
@@ -429,7 +424,6 @@ h1.patientDashboardTitle {
   border-color: none;
   box-shadow: 0 0 4px rgba(56, 82, 148, 0.3);
 }
-
 
 .filterPatientSelect{
   width: 15%;
@@ -453,7 +447,6 @@ h1.patientDashboardTitle {
   border-color: none;
   box-shadow: 0 0 4px rgba(56, 82, 148, 0.3);
 }
-
 
 .calendar {
   width: 100%;
@@ -500,12 +493,12 @@ h1.patientDashboardTitle {
 
 .paginationButton:hover {
   background-color: #223259;
-color: #fff;
+  color: #fff;
 }
 
 .paginationButton:disabled {
   background-color: transparent;
-    color: #223259;
+  color: #223259;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -521,4 +514,54 @@ color: #fff;
   display: flex;
   justify-content: flex-end;
   margin-top: 15px;
+}
+
+/* Time Slot Styles */
+.timeSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.timeSlot {
+  padding: 10px 20px; /* Matching .actionButton */
+  border: 1px solid var(--color-primary); /* Matching .actionButton */
+  border-radius: 100px; /* Matching .actionButton */
+  font-family: var(--font-primary); /* Matching .actionButton */
+  font-weight: 500; /* Matching .actionButton */
+  font-size: 12px; /* Matching .actionButton */
+  letter-spacing: 1px; /* Matching .actionButton */
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; /* Matching .actionButton */
+  text-transform: uppercase; /* Matching .actionButton */
+}
+
+.timeSlotAvailable {
+  background-color: var(--color-primary); /* #385294, matching .actionButton */
+  color: #fff; /* Matching .actionButton */
+}
+
+.timeSlotAvailable:hover {
+  background-color: transparent; /* Matching .actionButton:hover */
+  color: var(--color-primary); /* #385294, matching .actionButton:hover */
+  border-color: var(--color-primary); /* #385294, matching .actionButton:hover */
+}
+
+.timeSlotUnavailable {
+  background-color: #ff4d4f;
+  color: white;
+  cursor: not-allowed;
+}
+
+.timeSlotSelected {
+  background-color: #223259; /* Darker shade, matching .paginationButton:hover */
+  color: #fff; /* Matching .actionButton */
+  border-color: #223259; /* Consistent with background */
+  box-shadow: 0 4px 12px rgba(56, 83, 148, 0.3); /* Matching .modal */
+  transform: scale(1.05); /* Slight scale, inspired by .card:hover */
+}
+.unavailableAllSlots {
+  background-color: #ff4d4f !important;
+  color: white !important;
 }

@@ -121,14 +121,14 @@
 
 /* Warning with enhanced design */
 .warning {
-  background: linear-gradient(to right, #fff3cd, #ffecd2); /* Subtle gradient */
+  background: linear-gradient(to right, #fff3cd, #ffecd2);
   color: #856404;
   padding: 10px;
   border: 1px solid #ffeeba;
-  border-radius: 12px; /* Increased for appeal */
+  border-radius: 12px;
   margin-bottom: 20px;
   text-align: center;
-  box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2); /* Teal shadow */
+  box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
 }
 
 /*--------------- DASHBOARD CONTENT --------------*/
@@ -167,7 +167,7 @@
 
 /* Stat Card */
 .statCard {
-  background: linear-gradient(to bottom, #ffffff, #f9fbfc); 
+  background: linear-gradient(to bottom, #ffffff, #f9fbfc);
   padding: 30px;
   border-radius: 30px;
   box-shadow: 0 4px 12px rgba(56,83,148,0.1);
@@ -197,7 +197,7 @@
 .chartContainer {
   margin-top: 1rem;
   padding: 1rem;
-  background: linear-gradient(to bottom, #ffffff, #f9fbfc); 
+  background: linear-gradient(to bottom, #ffffff, #f9fbfc);
   padding: 20px;
   border-radius: 30px;
   box-shadow: 0 4px 12px rgba(56,83,148,0.1);
@@ -230,7 +230,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  height: 200px; 
+  height: 200px;
   width: 30px;
   display: flex;
   flex-direction: column;
@@ -271,7 +271,7 @@
 }
 
 .bar {
-  width: 20px; 
+  width: 20px;
   background-color: #385294;
   border-radius: 3px 3px 0 0;
   transition: height 0.3s ease;
@@ -302,8 +302,6 @@
 }
 /*END*/
 /*--------------- END OF DASHBOARD CONTENT --------------*/
-
-
 
 /*---------------- DENTIST CONSULTATIONS ----------------*/
 /* START - Filter & Search */
@@ -350,14 +348,13 @@ option {
 }
 
 /*Label Spacing*/
-.filterLabel1{
+.filterLabel1 {
   width: 200px;
 }
 
-.filterLabel2{
+.filterLabel2 {
   width: 340px;
   margin-left: 50px;
-
 }
 /*END*/
 
@@ -386,7 +383,7 @@ option {
   color: #212121;
 }
 
-.appointmentTable td{
+.appointmentTable td {
   font-size: 15px;
   padding: 15px 0px;
   color: #17223C;
@@ -402,7 +399,6 @@ option {
   justify-content: center;
   padding: 20px 0px;
 }
-
 
 /* Table Buttons */
 .actionButton {
@@ -466,7 +462,6 @@ option {
 }
 /*END*/
 
-
 /*START - Pagination*/
 /* Pagination Container */
 .paginationContainer {
@@ -483,7 +478,7 @@ option {
   font-size: 14px;
   font-weight: 500;
   border: 1px solid #dee2e6;
-  border-radius: 30px!important;
+  border-radius: 30px !important;
   background-color: #f8f9fa;
   color: #223259;
   cursor: pointer;
@@ -520,22 +515,15 @@ option {
   margin-top: 10px;
   font-size: 14px;
   color: #666;
-  text-align: right; 
+  text-align: right;
 }
-
 /*---------------- END OF TABLE -------------------*/
 
-
-
 /*---------------- MODAL -------------------*/
-
-
-/* Section with clean styling */
 .section {
   margin-bottom: 30px;
 }
 
-/* Subtitle with modern touch */
 .subtitle {
   font-size: 20px;
   margin-bottom: 10px;
@@ -544,15 +532,13 @@ option {
   letter-spacing: 0.3px;
 }
 
-
-
-.modalDivider{
+.modalDivider {
   border: none;
   border-top: 1px solid #ccc;
   margin: 30px 0 15px 0;
 }
 
-.modalOverlay h1{
+.modalOverlay h1 {
   text-align: center;
 }
 
@@ -614,13 +600,14 @@ option {
   box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
 }
 
-.modal label{
+.modal label {
   font-weight: 600;
 }
 
-.diagnosisSelect{
+.diagnosisSelect {
   text-align: center;
 }
+
 .modal h3 {
   margin-top: 0;
   color: #223259;
@@ -638,7 +625,8 @@ option {
   margin-bottom: 50px;
 }
 
-.rejectionReason, .followupDate{
+.rejectionReason,
+.followupDate {
   margin: auto;
 }
 
@@ -652,8 +640,6 @@ option {
   margin: auto;
 }
 /*---------------- END OF MODAL -------------------*/
-
-
 
 /*------------------ CALENDAR ---------------------*/
 /* Calendar-specific styles */
@@ -673,10 +659,11 @@ option {
   box-shadow: 0 4px 12px rgba(0, 105, 92, 0.2);
 }
 
-.calendar label{
+.calendar label {
   font-weight: 600;
 }
 
+/* Calendar tile styles */
 .available {
   background-color: #d4edda !important;
   color: green !important;
@@ -687,6 +674,86 @@ option {
   color: red !important;
 }
 
+/* Time slots container */
+.timeSlotsContainer {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+}
+
+.timeSlotsContainer h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.timeSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Base time slot style */
+.timeSlot {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+/* Available time slot */
+.timeSlotAvailable {
+  background-color: #d4edda;
+  color: green;
+}
+
+.timeSlotAvailable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 105, 92, 0.2);
+}
+
+/* Unavailable time slot with tooltip */
+.timeSlotUnavailable {
+  background-color: #f8d7da;
+  color: red;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.timeSlotUnavailable::after {
+  content: attr(data-reason);
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.timeSlotUnavailable:hover::after {
+  opacity: 1;
+}
+
+/* Selected time slot */
+.timeSlotSelected {
+  background-color: #223259;
+  color: #fff;
+  border-color: #223259;
+  box-shadow: 0 4px 12px rgba(0, 105, 92, 0.3);
+  transform: scale(1.05);
+}
+
+/* Legend */
 .legend {
   margin-top: 10px;
   text-align: center;
@@ -709,10 +776,14 @@ option {
   color: #223259;
   text-transform: uppercase;
 }
+
+/* Error message */
+.error {
+  color: red;
+  text-align: center;
+  margin-top: 10px;
+}
 /*------------------ END OF CALENDAR ---------------------*/
-
-
-
 
 /*---------------- PROFILE FORM -------------------------*/
 /* Profile form container with enhanced design */
@@ -752,7 +823,7 @@ option {
   color: #385294;
 }
 
-.licensePreview{
+.licensePreview {
   margin-top: 25px;
 }
 
@@ -771,5 +842,4 @@ option {
   vertical-align: middle;
   margin-top: 15px;
 }
-
 /*---------------- END OF PROFILE FORM -------------------------*/

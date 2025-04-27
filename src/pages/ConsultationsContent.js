@@ -9,6 +9,7 @@ const ConsultationsContent = ({ dentistId }) => {
   const [currentDiagnosis, setCurrentDiagnosis] = useState(null);
   const [finalDiagnosis, setFinalDiagnosis] = useState("");
   const [finalDiagnosisDesc, setFinalDiagnosisDesc] = useState("");
+  const [dentistDiagnosis, setDentistDiagnosis] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,7 @@ const ConsultationsContent = ({ dentistId }) => {
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpReason, setFollowUpReason] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -62,7 +64,7 @@ const ConsultationsContent = ({ dentistId }) => {
 
         const { data: consultationData, error: consultationError } = await supabase
           .from("Consultation")
-          .select("*, Patient(FirstName, LastName), Diagnosis(*)")
+          .select("*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)")
           .eq("DentistId", dentistId)
           .order("AppointmentDate", { ascending: true });
 
@@ -149,6 +151,7 @@ const ConsultationsContent = ({ dentistId }) => {
           Status: "rejected",
           followupdate: null,
           rejection_reason: rejectionReason.trim(),
+          FollowUpReason: null,
         })
         .eq("id", appointmentToReject)
         .select();
@@ -173,7 +176,11 @@ const ConsultationsContent = ({ dentistId }) => {
     try {
       const { data, error } = await supabase
         .from("Consultation")
-        .update({ Status: "complete", followupdate: null })
+        .update({ 
+          Status: "complete", 
+          followupdate: null,
+          FollowUpReason: null
+        })
         .eq("id", appointmentId)
         .select();
 
@@ -190,7 +197,7 @@ const ConsultationsContent = ({ dentistId }) => {
     try {
       const { data: updatedAppointments, error: refreshError } = await supabase
         .from("Consultation")
-        .select("*, Patient(FirstName, LastName), Diagnosis(*)")
+        .select("*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)")
         .eq("DentistId", dentistId)
         .order("AppointmentDate", { ascending: true });
 
@@ -218,6 +225,7 @@ const ConsultationsContent = ({ dentistId }) => {
       setCurrentDiagnosis(sortedDiagnoses[0]);
       setFinalDiagnosis(sortedDiagnoses[0].FinalDiagnosis || "");
       setFinalDiagnosisDesc(sortedDiagnoses[0].FinalDiagnosisDesc || "");
+      setDentistDiagnosis(sortedDiagnoses[0].DentistDiagnosis || "");
       setImageError(false);
       console.log("Opening modal with Diagnoses:", sortedDiagnoses);
       setIsModalOpen(true);
@@ -230,6 +238,7 @@ const ConsultationsContent = ({ dentistId }) => {
     setCurrentDiagnosis(diagnosis);
     setFinalDiagnosis(diagnosis.FinalDiagnosis || "");
     setFinalDiagnosisDesc(diagnosis.FinalDiagnosisDesc || "");
+    setDentistDiagnosis(diagnosis.DentistDiagnosis || "");
     setImageError(false);
   };
 
@@ -242,6 +251,7 @@ const ConsultationsContent = ({ dentistId }) => {
         .update({
           FinalDiagnosis: finalDiagnosis,
           FinalDiagnosisDesc: finalDiagnosisDesc,
+          DentistDiagnosis: dentistDiagnosis || null,
         })
         .eq("id", currentDiagnosis.id)
         .select();
@@ -258,6 +268,7 @@ const ConsultationsContent = ({ dentistId }) => {
       setCurrentDiagnosis(null);
       setFinalDiagnosis("");
       setFinalDiagnosisDesc("");
+      setDentistDiagnosis("");
     } catch (error) {
       console.error("Update error:", error.message);
       setError(`An error occurred: ${error.message}`);
@@ -267,6 +278,7 @@ const ConsultationsContent = ({ dentistId }) => {
   const handleSetFollowUp = (appointment) => {
     setSelectedConsultation(appointment);
     setFollowUpDate(appointment.followupdate ? new Date(appointment.followupdate).toISOString().slice(0, 16) : "");
+    setFollowUpReason(appointment.FollowUpReason || "");
     setFollowUpModalOpen(true);
   };
 
@@ -278,17 +290,19 @@ const ConsultationsContent = ({ dentistId }) => {
         .from("Consultation")
         .update({
           followupdate: followUpDate ? new Date(followUpDate).toISOString() : null,
+          FollowUpReason: followUpReason.trim() || null,
           Status: "follow-up",
         })
         .eq("id", selectedConsultation.id)
         .select();
 
       if (error) throw new Error(`Error setting follow-up date: ${error.message}`);
-      console.log("Follow-up date and status updated successfully:", data);
+      console.log("Follow-up date and reason updated successfully:", data);
       await refreshAppointments();
       setFollowUpModalOpen(false);
       setSelectedConsultation(null);
       setFollowUpDate("");
+      setFollowUpReason("");
     } catch (error) {
       console.error("Follow-up error:", error.message);
       setError(`An error occurred: ${error.message}`);
@@ -386,12 +400,30 @@ const ConsultationsContent = ({ dentistId }) => {
                 const canSetComplete = statusLower === "follow-up" || statusLower === "partially complete";
                 return (
                   <tr key={appointment.id}>
-                    <td>{new Date(appointment.AppointmentDate).toLocaleDateString()}</td>
+                    <td>
+                      {new Date(appointment.AppointmentDate).toLocaleString("en-PH", {
+                        timeZone: "Asia/Manila",
+                        year: "numeric",
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "numeric",
+                        hour12: true,
+                      })}
+                    </td>
                     <td>{`${appointment.Patient.FirstName} ${appointment.Patient.LastName}`}</td>
                     <td>{appointment.Status}</td>
                     <td>
                       {appointment.followupdate
-                        ? new Date(appointment.followupdate).toLocaleDateString()
+                        ? new Date(appointment.followupdate).toLocaleString("en-PH", {
+                            timeZone: "Asia/Manila",
+                            year: "numeric",
+                            month: "numeric",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "numeric",
+                            hour12: true,
+                          })
                         : "Not set"}
                     </td>
                     <td>
@@ -412,7 +444,7 @@ const ConsultationsContent = ({ dentistId }) => {
                             </button>
                           </>
                         )}
-                      {(userRole === "dentist" || userRole === "secretary") &&
+                      {userRole === "dentist" &&
                         appointment.Diagnosis &&
                         appointment.Diagnosis.length > 0 &&
                         canViewDiagnosis && (
@@ -494,20 +526,20 @@ const ConsultationsContent = ({ dentistId }) => {
       {isModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal} style={{ maxHeight: "90vh", overflowY: "auto" }}>
-          <h1 className={styles.title}>
-          <span className={styles.wordPrimary}>Diagnosis</span>{" "}
-          <span className={styles.wordAccent}>History</span>
-          </h1>
+            <h1 className={styles.title}>
+              <span className={styles.wordPrimary}>Diagnosis</span>{" "}
+              <span className={styles.wordAccent}>History</span>
+            </h1>
             {selectedDiagnoses && selectedDiagnoses.length > 0 ? (
               <>
                 <div className={styles.diagnosisSelect} style={{ marginBottom: "20px" }}>
                   <label>
                     <strong>Select Diagnosis Record:</strong>
                     <select
-                    className={styles.filterSelect}
+                      className={styles.filterSelect}
                       value={currentDiagnosis?.id || ""}
                       onChange={(e) => {
-                        const selected = selectedDiagnoses.find(d => d.id === parseInt(e.target.value));
+                        const selected = selectedDiagnoses.find((d) => d.id === parseInt(e.target.value));
                         handleSelectDiagnosis(selected);
                       }}
                       style={{ marginLeft: "10px", padding: "5px", width: "100%", maxWidth: "400px" }}
@@ -520,26 +552,49 @@ const ConsultationsContent = ({ dentistId }) => {
                     </select>
                   </label>
                 </div>
-                <hr className={styles.modalDivider}/>
+                <hr className={styles.modalDivider} />
                 {currentDiagnosis && (
                   <div className={styles.modalcont}>
                     <div className={styles.txtfieldcont}>
                       <p>
-                        <strong>Diagnosis ID:</strong>{" "}
-                        {currentDiagnosis.id}
+                        <strong>Diagnosis ID:</strong> {currentDiagnosis.id}
                       </p>
                       <p>
-                        <strong>Diagnosis:</strong>{" "}
+                        <strong>System Diagnosis:</strong>{" "}
                         {currentDiagnosis.InitialDiagnosis || "Not specified"}
                       </p>
                       <p>
-                        <strong>Affected Tooth:</strong>{" "}
-                        {currentDiagnosis.AffectedTooth || "Not specified"}
+                        <strong>Jaw Position:</strong>{" "}
+                        {currentDiagnosis.JawPosition || "Not specified"}
+                      </p>
+                      <p>
+                        <strong>Tooth Type:</strong>{" "}
+                        {currentDiagnosis.ToothType || "Not specified"}
                       </p>
                       <p>
                         <strong>Confidence:</strong>{" "}
                         {(currentDiagnosis.Confidence * 100).toFixed(2)}%
                       </p>
+                      <label>
+                        Dentist Diagnosis (optional):
+                        <select
+                          value={dentistDiagnosis}
+                          onChange={(e) => setDentistDiagnosis(e.target.value)}
+                          className={styles.filterSelect}
+                          style={{ width: "100%", padding: "5px", marginTop: "5px" }}
+                        >
+                          <option value="">-- Select Diagnosis --</option>
+                          <option value="Tooth decay">Tooth decay</option>
+                          <option value="Gum disease">Gum disease</option>
+                          <option value="Gingivitis">Gingivitis</option>
+                          <option value="Tooth Erosion">Tooth Erosion</option>
+                          <option value="Tooth Sensitivity">Tooth Sensitivity</option>
+                          <option value="Cracked or fractured teeth">Cracked or fractured teeth</option>
+                          <option value="Malocclusion">Malocclusion</option>
+                          <option value="Tooth Abcess">Tooth Abcess</option>
+                          <option value="Impacted Tooth">Impacted Tooth</option>
+                        </select>
+                      </label>
                       <label>
                         Additional Diagnosis (optional):
                         <input
@@ -575,12 +630,8 @@ const ConsultationsContent = ({ dentistId }) => {
                     </div>
                   </div>
                 )}
-
                 <div className={styles.modalButtons}>
-                  <button
-                    className={styles.actionButton}
-                    onClick={handleUpdateDiagnosis}
-                  >
+                  <button className={styles.actionButton} onClick={handleUpdateDiagnosis}>
                     Save
                   </button>
                   <button
@@ -589,6 +640,7 @@ const ConsultationsContent = ({ dentistId }) => {
                       setIsModalOpen(false);
                       setSelectedDiagnoses([]);
                       setCurrentDiagnosis(null);
+                      setDentistDiagnosis("");
                     }}
                   >
                     Close
@@ -605,10 +657,10 @@ const ConsultationsContent = ({ dentistId }) => {
       {followUpModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-          <h1 className={styles.title}>
-            <span className={styles.wordPrimary}>Set Follow-Up</span>{" "}
-            <span className={styles.wordAccent}>Date</span>
-          </h1>
+            <h1 className={styles.title}>
+              <span className={styles.wordPrimary}>Set Follow-Up</span>{" "}
+              <span className={styles.wordAccent}>Date</span>
+            </h1>
             <div className={styles.modalcont}>
               <label className={styles.followupDate}>
                 Follow-Up Date:
@@ -620,17 +672,26 @@ const ConsultationsContent = ({ dentistId }) => {
                   min={new Date().toISOString().slice(0, 16)}
                 />
               </label>
+              <label>
+                Follow-Up Reason:
+                <textarea
+                  value={followUpReason}
+                  onChange={(e) => setFollowUpReason(e.target.value)}
+                  className={styles.textareaField}
+                  placeholder="Enter the reason for the follow-up (optional)"
+                />
+              </label>
             </div>
             <div className={styles.modalButtons}>
-              <button
-                className={styles.actionButton}
-                onClick={handleSaveFollowUp}
-              >
+              <button className={styles.actionButton} onClick={handleSaveFollowUp}>
                 Save
               </button>
               <button
                 className={styles.actionButton}
-                onClick={() => setFollowUpModalOpen(false)}
+                onClick={() => {
+                  setFollowUpModalOpen(false);
+                  setFollowUpReason("");
+                }}
               >
                 Cancel
               </button>
@@ -681,10 +742,10 @@ const ConsultationsContent = ({ dentistId }) => {
       {viewReasonModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-          <h1 className={styles.title}>
-            <span className={styles.wordPrimary}>Rejection</span>{" "}
-            <span className={styles.wordAccent}>Reason</span>
-          </h1>
+            <h1 className={styles.title}>
+              <span className={styles.wordPrimary}>Rejection</span>{" "}
+              <span className={styles.wordAccent}>Reason</span>
+            </h1>
             <div className={styles.modalcont}>
               <p className={styles.rejectionReason}>{reasonToView}</p>
             </div>

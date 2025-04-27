@@ -27,10 +27,26 @@ const PatientDashboard = () => {
   const [currentPageHistory, setCurrentPageHistory] = useState(1);
   const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
   const [reasonToView, setReasonToView] = useState("");
+  const [viewFollowUpReasonModalOpen, setViewFollowUpReasonModalOpen] = useState(false);
+  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "" }); // Updated to store both reason and date
   const appointmentsPerPage = 6;
   const historyPerPage = 3;
 
   const SUPABASE_STORAGE_URL = 'https://snvrykahnydcsdvfwfbw.supabase.co/storage/v1/object/public/';
+
+  // Helper function to convert UTC to Philippine Time (UTC+8) and format date-time
+  const formatDateTimePhilippine = (utcDateString) => {
+    const utcDate = new Date(utcDateString);
+    return utcDate.toLocaleString("en-PH", {
+      timeZone: "Asia/Manila",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
   useEffect(() => {
     const fetchUserAndData = async () => {
@@ -71,6 +87,11 @@ const PatientDashboard = () => {
       if (allConsultationsError) {
         console.error("Error fetching all consultations:", allConsultationsError);
       } else {
+        console.log("Raw Consultations from Supabase:", allConsultations.map(c => ({
+          id: c.id,
+          AppointmentDate: c.AppointmentDate,
+        })));
+
         const consultationsWithStatus = allConsultations.map((consultation, index, arr) => {
           const priorConsultations = arr.slice(0, index).filter(
             (c) => c.PatientId === consultation.PatientId
@@ -103,6 +124,7 @@ const PatientDashboard = () => {
                 consultationId: consultation.id,
                 followUpDate: followUpDate,
                 dentistName: consultation.Dentist.DentistName,
+                appointmentTime: formatDateTimePhilippine(consultation.AppointmentDate),
               };
             }
             return null;
@@ -154,7 +176,7 @@ const PatientDashboard = () => {
     if (error) {
       console.error("Error signing out:", error.message);
     } else {
-        console.log("Sign out successful, redirecting to /PatientLogin");
+      console.log("Sign out successful, redirecting to /PatientLogin");
       navigate("/PatientLogin");
     }
   };
@@ -339,6 +361,7 @@ const PatientDashboard = () => {
                 consultationId: consultation.id,
                 followUpDate: followUpDate,
                 dentistName: consultation.Dentist.DentistName,
+                appointmentTime: formatDateTimePhilippine(consultation.AppointmentDate),
               };
             }
             return null;
@@ -405,6 +428,7 @@ const PatientDashboard = () => {
                   consultationId: consultation.id,
                   followUpDate: followUpDate,
                   dentistName: consultation.Dentist.DentistName,
+                  appointmentTime: formatDateTimePhilippine(consultation.AppointmentDate),
                 };
               }
               return null;
@@ -423,6 +447,14 @@ const PatientDashboard = () => {
   const handleViewRejectionReason = (reason) => {
     setReasonToView(reason || "No reason provided.");
     setViewReasonModalOpen(true);
+  };
+
+  const handleViewFollowUpReason = (reason, followUpDate) => {
+    setFollowUpDetailsToView({
+      reason: reason || "No reason provided.",
+      date: followUpDate || null,
+    });
+    setViewFollowUpReasonModalOpen(true);
   };
 
   const handleImageError = () => {
@@ -464,7 +496,7 @@ const PatientDashboard = () => {
     })),
     ...completedConsultations.map(consultation => ({
       type: 'consultation',
-      date: new Date(consultation.AppointmentDate),
+      date: "AppointmentDate" in consultation ? new Date(consultation.AppointmentDate) : new Date(consultation.created_at),
       data: consultation,
     })),
   ].sort((a, b) => b.date - a.date);
@@ -494,15 +526,15 @@ const PatientDashboard = () => {
   return (
     <div className={styles.dashboard}>
       <header className={styles.header}>
-      <div className={styles.logoContainer}>
-        <img src={logo} alt="Logo" className={styles.logo} />
-      </div>
+        <div className={styles.logoContainer}>
+          <img src={logo} alt="Logo" className={styles.logo} />
+        </div>
         <button className={styles.logoutButton} onClick={handleSignOut}>Sign Out</button>
       </header>
       
       <div className={styles.content}>
         <section className={styles.section}>
-        <h1 className={styles.patientDashboardTitle}>
+          <h1 className={styles.patientDashboardTitle}>
             <span className={styles.wordPrimary}>Appointment</span>{" "}
             <span className={styles.wordAccent}>Dashboard</span>
           </h1>
@@ -517,7 +549,8 @@ const PatientDashboard = () => {
               {followUpNotifications.map((notification) => (
                 <p key={notification.consultationId} style={{ margin: '5px 0' }}>
                   You have a follow-up appointment with {notification.dentistName} on{" "}
-                  {notification.followUpDate.toLocaleDateString()}.
+                  {notification.followUpDate.toLocaleDateString()} at{" "}
+                  {notification.appointmentTime.split(", ")[1]}.
                 </p>
               ))}
             </div>
@@ -547,10 +580,12 @@ const PatientDashboard = () => {
                 {currentAppointments.map(appointment => {
                   const statusLower = appointment.Status.toLowerCase();
                   const canReschedule = !["partially complete", "follow-up", "rejected"].includes(statusLower);
+                  const formattedDateTime = formatDateTimePhilippine(appointment.AppointmentDate);
+                  console.log(`Upcoming Appointment ID ${appointment.id} - Raw AppointmentDate: ${appointment.AppointmentDate}, Displayed: ${formattedDateTime}`);
 
                   return (
                     <div key={appointment.id} className={styles.card}>
-                      <p><strong>Date:</strong> {new Date(appointment.AppointmentDate).toLocaleDateString()}</p>
+                      <p><strong>Date and Time:</strong> {formattedDateTime}</p>
                       <p><strong>Dentist:</strong> {appointment.Dentist.DentistName}</p>
                       <p><strong>Patient Status:</strong> {appointment.patientStatus === "new" ? "New" : "Returning"}</p>
                       <p><strong>Status:</strong> {appointment.Status}</p>
@@ -579,6 +614,14 @@ const PatientDashboard = () => {
                             onClick={() => handleViewRejectionReason(appointment.rejection_reason)}
                           >
                             View Reason
+                          </button>
+                        )}
+                        {appointment.Status === "follow-up" && (
+                          <button
+                            className={styles.actionButton}
+                            onClick={() => handleViewFollowUpReason(appointment.FollowUpReason, appointment.followupdate)}
+                          >
+                            View Follow-Up Reason
                           </button>
                         )}
                       </div>
@@ -624,36 +667,43 @@ const PatientDashboard = () => {
         </section>
         <hr className={styles.dividerMiddle} />
         <section className={styles.section}>
-        <h3 className={styles.PatientDashboardTitleSection}>
+          <h3 className={styles.PatientDashboardTitleSection}>
             <span className={styles.wordPrimary}>Dental</span>{" "}
             <span className={styles.wordAccent}>History</span>
           </h3>
           {(patientHistory.length > 0 || completedConsultations.length > 0) ? (
             <>
               <div className={styles.cardContainer}>
-                {currentHistory.map((entry, index) => (
-                  <div key={`${entry.type}-${entry.data.id}`} className={styles.card}>
-                    {entry.type === 'history' ? (
-                      <>
-                        <p><strong>Date:</strong> {entry.data.date}</p>
-                        <p><strong>Note:</strong> {entry.data.note}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p><strong>Date:</strong> {new Date(entry.data.AppointmentDate).toLocaleDateString()}</p>
-                        <p><strong>Dentist:</strong> {entry.data.Dentist.DentistName}</p>
-                        <p><strong>Patient Status:</strong> {entry.data.patientStatus === "new" ? "New" : "Returning"}</p>
-                        <p><strong>Status:</strong> Completed</p>
-                        <button
-                          className={styles.actionButton}
-                          onClick={() => openDiagnosisModal(entry.data.Diagnosis)}
-                        >
-                          View Diagnosis
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))}
+                {currentHistory.map((entry, index) => {
+                  const formattedDateTime = entry.type === 'consultation' ? formatDateTimePhilippine(entry.data.AppointmentDate) : null;
+                  if (entry.type === 'consultation') {
+                    console.log(`Dental History Consultation ID ${entry.data.id} - Raw AppointmentDate: ${entry.data.AppointmentDate}, Displayed: ${formattedDateTime}`);
+                  }
+
+                  return (
+                    <div key={`${entry.type}-${entry.data.id}`} className={styles.card}>
+                      {entry.type === 'history' ? (
+                        <>
+                          <p><strong>Date:</strong> {entry.data.date}</p>
+                          <p><strong>Note:</strong> {entry.data.note}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p><strong>Date and Time:</strong> {formattedDateTime}</p>
+                          <p><strong>Dentist:</strong> {entry.data.Dentist.DentistName}</p>
+                          <p><strong>Patient Status:</strong> {entry.data.patientStatus === "new" ? "New" : "Returning"}</p>
+                          <p><strong>Status:</strong> Completed</p>
+                          <button
+                            className={styles.actionButton}
+                            onClick={() => openDiagnosisModal(entry.data.Diagnosis)}
+                          >
+                            View Diagnosis
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <div className={styles.paginationContainer}>
                 <button
@@ -702,17 +752,18 @@ const PatientDashboard = () => {
         appointment={selectedAppointment}
         styles={styles}
         dentistAvailability={dentistAvailability}
+        allAppointments={appointments}
       />
 
       {isDiagnosisModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal} style={{ maxHeight: "80vh", overflowY: "auto" }}>
-          <h3 className={styles.PatientDashboardTitleSection} style={{ textAlign: "center" }}>
-          <p className={styles.preTitleModal}>Patient Overview</p>
-            <hr className={styles.dividerModal} />
-            <span className={styles.wordPrimary}>Diagnosis</span>{" "}
-            <span className={styles.wordAccent}>History</span>
-          </h3>
+            <h3 className={styles.PatientDashboardTitleSection} style={{ textAlign: "center" }}>
+              <p className={styles.preTitleModal}>Patient Overview</p>
+              <hr className={styles.dividerModal} />
+              <span className={styles.wordPrimary}>Diagnosis</span>{" "}
+              <span className={styles.wordAccent}>History</span>
+            </h3>
             {selectedDiagnoses && selectedDiagnoses.length > 0 ? (
               <>
                 <div style={{ marginBottom: "20px" }}>
@@ -787,6 +838,29 @@ const PatientDashboard = () => {
                 onClick={() => {
                   setViewReasonModalOpen(false);
                   setReasonToView("");
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewFollowUpReasonModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>Follow-Up Details</h3>
+            <div className={styles.modalcont}>
+              <p><strong>Follow-Up Date:</strong> {followUpDetailsToView.date ? formatDateTimePhilippine(followUpDetailsToView.date) : "Not set"}</p>
+              <p><strong>Reason:</strong> {followUpDetailsToView.reason}</p>
+            </div>
+            <div className={styles.modalButtons}>
+              <button
+                className={styles.actionButton}
+                onClick={() => {
+                  setViewFollowUpReasonModalOpen(false);
+                  setFollowUpDetailsToView({ reason: "", date: "" });
                 }}
               >
                 Close
