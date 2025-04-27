@@ -16,6 +16,7 @@ const PatientDashboard = () => {
   const [currentDiagnosis, setCurrentDiagnosis] = useState(null);
   const [dentists, setDentists] = useState([]);
   const [dentistAvailability, setDentistAvailability] = useState([]);
+  const [allDentistAppointments, setAllDentistAppointments] = useState([]); // New state for all dentist appointments
   const [patientId, setPatientId] = useState(null);
   const [email, setEmail] = useState('');
   const [patientData, setPatientData] = useState(null);
@@ -28,7 +29,7 @@ const PatientDashboard = () => {
   const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
   const [reasonToView, setReasonToView] = useState("");
   const [viewFollowUpReasonModalOpen, setViewFollowUpReasonModalOpen] = useState(false);
-  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "" }); // Updated to store both reason and date
+  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "" });
   const appointmentsPerPage = 6;
   const historyPerPage = 3;
 
@@ -166,6 +167,19 @@ const PatientDashboard = () => {
         setDentistAvailability(availabilityData || []);
         console.log('Fetched Dentist Availability:', availabilityData);
       }
+
+      // Fetch all appointments for all dentists (to determine unavailable slots)
+      const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
+        .from('Consultation')
+        .select('DentistId, AppointmentDate, Status')
+        .in('Status', ['approved', 'In Consultation']);
+
+      if (allAppointmentsError) {
+        console.error("Error fetching all dentist appointments:", allAppointmentsError);
+      } else {
+        setAllDentistAppointments(allAppointmentsData || []);
+        console.log('Fetched All Dentist Appointments:', allAppointmentsData);
+      }
     };
 
     fetchUserAndData();
@@ -284,19 +298,20 @@ const PatientDashboard = () => {
         patientIdToUse = newPatient[0].id;
       }
 
-      console.log('Patient ID:', patientIdToUse);
+      console.log('Patient ID to use:', patientIdToUse);
 
       const consultationData = {
         PatientId: patientIdToUse,
-        DentistId: formData.DentistId,
+        DentistId: parseInt(formData.DentistId),
         Status: 'pending',
-        AppointmentDate: formData.AppointmentDate,
+        AppointmentDate: formData.AppointmentDate, // Already in UTC ISO format
       };
 
-      console.log('Consultation data to be saved:', consultationData);
+      console.log('Saving consultation to Supabase:', consultationData);
 
+      let consultationResult;
       if (selectedAppointment) {
-        const { data: consultationResult, error: consultationError } = await supabase
+        const { data, error: consultationError } = await supabase
           .from('Consultation')
           .update(consultationData)
           .eq('id', selectedAppointment.id)
@@ -306,9 +321,10 @@ const PatientDashboard = () => {
           console.error('Consultation update error:', consultationError);
           throw new Error(`Error updating consultation: ${consultationError.message}`);
         }
+        consultationResult = data;
         console.log("Consultation updated successfully:", consultationResult);
       } else {
-        const { data: consultationResult, error: consultationError } = await supabase
+        const { data, error: consultationError } = await supabase
           .from('Consultation')
           .insert([consultationData])
           .select();
@@ -317,10 +333,13 @@ const PatientDashboard = () => {
           console.error('Consultation insert error:', consultationError);
           throw new Error(`Error inserting consultation: ${consultationError.message}`);
         }
-        console.log("Consultation data saved successfully:", consultationResult);
+        consultationResult = data;
+        console.log("Consultation inserted successfully:", consultationResult);
       }
 
       alert(selectedAppointment ? "Appointment rescheduled successfully!" : "Appointment scheduled successfully!");
+      
+      // Refresh appointments after saving
       const { data: allConsultations, error: allConsultationsError } = await supabase
         .from('Consultation')
         .select('*, Dentist(DentistName), Diagnosis(*)')
@@ -369,6 +388,19 @@ const PatientDashboard = () => {
           .filter((notification) => notification !== null);
 
         setFollowUpNotifications(notifications);
+      }
+
+      // Refresh all dentist appointments to update unavailable slots
+      const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
+        .from('Consultation')
+        .select('DentistId, AppointmentDate, Status')
+        .in('Status', ['approved', 'In Consultation']);
+
+      if (allAppointmentsError) {
+        console.error("Error refreshing all dentist appointments:", allAppointmentsError);
+      } else {
+        setAllDentistAppointments(allAppointmentsData || []);
+        console.log('Refreshed All Dentist Appointments:', allAppointmentsData);
       }
 
     } catch (error) {
@@ -436,6 +468,19 @@ const PatientDashboard = () => {
             .filter((notification) => notification !== null);
 
           setFollowUpNotifications(notifications);
+        }
+
+        // Refresh all dentist appointments after cancellation
+        const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
+          .from('Consultation')
+          .select('DentistId, AppointmentDate, Status')
+          .in('Status', ['approved', 'In Consultation']);
+
+        if (allAppointmentsError) {
+          console.error("Error refreshing all dentist appointments:", allAppointmentsError);
+        } else {
+          setAllDentistAppointments(allAppointmentsData || []);
+          console.log('Refreshed All Dentist Appointments after cancellation:', allAppointmentsData);
         }
       } catch (error) {
         console.error('Cancel error:', error.message);
@@ -752,7 +797,7 @@ const PatientDashboard = () => {
         appointment={selectedAppointment}
         styles={styles}
         dentistAvailability={dentistAvailability}
-        allAppointments={appointments}
+        allAppointments={allDentistAppointments} // Pass all dentist appointments
       />
 
       {isDiagnosisModalOpen && (

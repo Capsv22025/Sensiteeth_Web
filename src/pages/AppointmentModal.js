@@ -132,7 +132,8 @@ const AppointmentModal = ({
         apptFormattedDate === formattedDate
       );
     });
-    console.log("Filtered Appointments for Date:", dateAppointments);
+    console.log("All Appointments:", allAppointments);
+    console.log("Filtered Appointments for Date and Dentist:", dateAppointments);
 
     const availabilityEntry = dentistAvailability.find(
       (entry) =>
@@ -178,6 +179,7 @@ const AppointmentModal = ({
         const apptDateTime = new Date(appt.AppointmentDate);
         return apptDateTime >= slotStart && apptDateTime < slotEnd;
       });
+      console.log(`Slot ${slot.label}: Has Approved Appointment: ${hasApprovedAppointment}`);
 
       const isPast =
         slotEnd < currentPhilippineTime &&
@@ -372,9 +374,15 @@ const AppointmentModal = ({
       return;
     }
 
-    console.log("Submitting Form Data:", formData);
-    await handleSubmit(formData);
-    clearForm();
+    console.log("Final Form Data Before Submission:", formData);
+    try {
+      await handleSubmit(formData);
+      console.log("Appointment submission successful");
+      clearForm();
+    } catch (error) {
+      console.error("Error submitting appointment:", error);
+      alert("Failed to save appointment. Please try again.");
+    }
   };
 
   const tileClassName = ({ date }) => {
