@@ -1,3 +1,4 @@
+// src/components/PatientDashboard.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -16,7 +17,7 @@ const PatientDashboard = () => {
   const [currentDiagnosis, setCurrentDiagnosis] = useState(null);
   const [dentists, setDentists] = useState([]);
   const [dentistAvailability, setDentistAvailability] = useState([]);
-  const [allDentistAppointments, setAllDentistAppointments] = useState([]); // New state for all dentist appointments
+  const [allDentistAppointments, setAllDentistAppointments] = useState([]);
   const [patientId, setPatientId] = useState(null);
   const [email, setEmail] = useState('');
   const [patientData, setPatientData] = useState(null);
@@ -29,7 +30,7 @@ const PatientDashboard = () => {
   const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
   const [reasonToView, setReasonToView] = useState("");
   const [viewFollowUpReasonModalOpen, setViewFollowUpReasonModalOpen] = useState(false);
-  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "" });
+  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "", image: "" }); // Added image
   const appointmentsPerPage = 6;
   const historyPerPage = 3;
 
@@ -168,7 +169,6 @@ const PatientDashboard = () => {
         console.log('Fetched Dentist Availability:', availabilityData);
       }
 
-      // Fetch all appointments for all dentists (to determine unavailable slots)
       const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
         .from('Consultation')
         .select('DentistId, AppointmentDate, Status')
@@ -303,8 +303,8 @@ const PatientDashboard = () => {
       const consultationData = {
         PatientId: patientIdToUse,
         DentistId: parseInt(formData.DentistId),
-        Status: 'approved',
-        AppointmentDate: formData.AppointmentDate, // Already in UTC ISO format
+        Status: 'pending',
+        AppointmentDate: formData.AppointmentDate,
       };
 
       console.log('Saving consultation to Supabase:', consultationData);
@@ -339,7 +339,6 @@ const PatientDashboard = () => {
 
       alert(selectedAppointment ? "Appointment rescheduled successfully!" : "Appointment scheduled successfully!");
       
-      // Refresh appointments after saving
       const { data: allConsultations, error: allConsultationsError } = await supabase
         .from('Consultation')
         .select('*, Dentist(DentistName), Diagnosis(*)')
@@ -366,7 +365,7 @@ const PatientDashboard = () => {
 
         setAppointments(activeAppointments);
         setCompletedConsultations(completedAppointments);
-        setCurrentPageAppointments(1); // Reset to first page after data refresh
+        setCurrentPageAppointments(1);
 
         const today = new Date();
         const sevenDaysFromNow = new Date(today);
@@ -390,7 +389,6 @@ const PatientDashboard = () => {
         setFollowUpNotifications(notifications);
       }
 
-      // Refresh all dentist appointments to update unavailable slots
       const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
         .from('Consultation')
         .select('DentistId, AppointmentDate, Status')
@@ -446,7 +444,7 @@ const PatientDashboard = () => {
             (consultation) => consultation.Status !== 'complete'
           );
           setAppointments(activeAppointments);
-          setCurrentPageAppointments(1); // Reset to first page after data refresh
+          setCurrentPageAppointments(1);
 
           const today = new Date();
           const sevenDaysFromNow = new Date(today);
@@ -470,7 +468,6 @@ const PatientDashboard = () => {
           setFollowUpNotifications(notifications);
         }
 
-        // Refresh all dentist appointments after cancellation
         const { data: allAppointmentsData, error: allAppointmentsError } = await supabase
           .from('Consultation')
           .select('DentistId, AppointmentDate, Status')
@@ -494,17 +491,19 @@ const PatientDashboard = () => {
     setViewReasonModalOpen(true);
   };
 
-  const handleViewFollowUpReason = (reason, followUpDate) => {
+  const handleViewFollowUpReason = (reason, followUpDate, followUpImage) => {
     setFollowUpDetailsToView({
       reason: reason || "No reason provided.",
       date: followUpDate || null,
+      image: followUpImage || "", // Include FollowUpImage
     });
     setViewFollowUpReasonModalOpen(true);
+    setImageError(false); // Reset image error state
   };
 
   const handleImageError = () => {
     setImageError(true);
-    console.error('Image failed to load:', currentDiagnosis?.ImageUrl);
+    console.error('Image failed to load:', followUpDetailsToView.image || currentDiagnosis?.ImageUrl);
   };
 
   const getFullImageUrl = (url) => {
@@ -519,7 +518,6 @@ const PatientDashboard = () => {
         (appointment) => appointment.Status.toLowerCase() === statusFilter.toLowerCase()
       );
 
-  // Pagination for Upcoming Appointments
   const totalAppointments = filteredAppointments.length;
   const totalPagesAppointments = Math.ceil(totalAppointments / appointmentsPerPage);
   const startIndexAppointments = (currentPageAppointments - 1) * appointmentsPerPage;
@@ -532,7 +530,6 @@ const PatientDashboard = () => {
     }
   };
 
-  // Combine and sort Dental History
   const combinedHistory = [
     ...patientHistory.map(history => ({
       type: 'history',
@@ -546,7 +543,6 @@ const PatientDashboard = () => {
     })),
   ].sort((a, b) => b.date - a.date);
 
-  // Pagination for Dental History
   const totalHistory = combinedHistory.length;
   const totalPagesHistory = Math.ceil(totalHistory / historyPerPage);
   const startIndexHistory = (currentPageHistory - 1) * historyPerPage;
@@ -559,7 +555,6 @@ const PatientDashboard = () => {
     }
   };
 
-  // Reset pagination when status filter changes
   useEffect(() => {
     setCurrentPageAppointments(1);
   }, [statusFilter]);
@@ -664,7 +659,7 @@ const PatientDashboard = () => {
                         {appointment.Status === "follow-up" && (
                           <button
                             className={styles.actionButton}
-                            onClick={() => handleViewFollowUpReason(appointment.FollowUpReason, appointment.followupdate)}
+                            onClick={() => handleViewFollowUpReason(appointment.FollowUpReason, appointment.followupdate, appointment.FollowUpImage)}
                           >
                             View Follow-Up Reason
                           </button>
@@ -797,7 +792,7 @@ const PatientDashboard = () => {
         appointment={selectedAppointment}
         styles={styles}
         dentistAvailability={dentistAvailability}
-        allAppointments={allDentistAppointments} // Pass all dentist appointments
+        allAppointments={allDentistAppointments}
       />
 
       {isDiagnosisModalOpen && (
@@ -899,13 +894,32 @@ const PatientDashboard = () => {
             <div className={styles.modalcont}>
               <p><strong>Follow-Up Date:</strong> {followUpDetailsToView.date ? formatDateTimePhilippine(followUpDetailsToView.date) : "Not set"}</p>
               <p><strong>Reason:</strong> {followUpDetailsToView.reason}</p>
+              {followUpDetailsToView.image && (
+                <>
+                  <p><strong>Image:</strong></p>
+                  {imageError ? (
+                    <p style={{ color: 'red' }}>
+                      Unable to load image. URL: {getFullImageUrl(followUpDetailsToView.image)}
+                    </p>
+                  ) : (
+                    <img
+                      src={getFullImageUrl(followUpDetailsToView.image)}
+                      alt="Follow-Up Image"
+                      style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+                      onError={handleImageError}
+                      onLoad={() => console.log('Follow-Up Image loaded successfully')}
+                    />
+                  )}
+                </>
+              )}
             </div>
             <div className={styles.modalButtons}>
               <button
                 className={styles.actionButton}
                 onClick={() => {
                   setViewFollowUpReasonModalOpen(false);
-                  setFollowUpDetailsToView({ reason: "", date: "" });
+                  setFollowUpDetailsToView({ reason: "", date: "", image: "" });
+                  setImageError(false);
                 }}
               >
                 Close
