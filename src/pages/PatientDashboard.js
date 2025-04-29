@@ -303,7 +303,7 @@ const PatientDashboard = () => {
       const consultationData = {
         PatientId: patientIdToUse,
         DentistId: parseInt(formData.DentistId),
-        Status: 'pending',
+        Status: 'approved',
         AppointmentDate: formData.AppointmentDate, // Already in UTC ISO format
       };
 
