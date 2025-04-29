@@ -1,3 +1,4 @@
+// src/components/ConsultationsContent.js
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import styles from "./DentistDashboard.module.css";
@@ -21,6 +22,7 @@ const ConsultationsContent = ({ dentistId }) => {
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpReason, setFollowUpReason] = useState("");
+  const [followUpImage, setFollowUpImage] = useState(null); // New state for image file
   const [currentPage, setCurrentPage] = useState(1);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -279,6 +281,7 @@ const ConsultationsContent = ({ dentistId }) => {
     setSelectedConsultation(appointment);
     setFollowUpDate(appointment.followupdate ? new Date(appointment.followupdate).toISOString().slice(0, 16) : "");
     setFollowUpReason(appointment.FollowUpReason || "");
+    setFollowUpImage(null); // Reset image on modal open
     setFollowUpModalOpen(true);
   };
 
@@ -286,23 +289,47 @@ const ConsultationsContent = ({ dentistId }) => {
     if (!selectedConsultation) return;
 
     try {
+      let imageUrl = null;
+
+      // Handle image upload if provided
+      if (followUpImage) {
+        const fileExtension = followUpImage.name.split('.').pop();
+        const fileName = `followup-${selectedConsultation.id}-${Date.now()}.${fileExtension}`;
+        const filePath = `FollowUpFiles/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("SensiteethBucket")
+          .upload(filePath, followUpImage, { cacheControl: "3600", upsert: false });
+
+        if (uploadError) {
+          throw new Error(`Image upload failed: ${uploadError.message}`);
+        }
+
+        // Generate public URL for the uploaded image
+        imageUrl = `${SUPABASE_STORAGE_URL}SensiteethBucket/${filePath}`;
+      }
+
+      // Update Consultation with follow-up details and image URL
       const { data, error } = await supabase
         .from("Consultation")
         .update({
           followupdate: followUpDate ? new Date(followUpDate).toISOString() : null,
           FollowUpReason: followUpReason.trim() || null,
+          FollowUpImage: imageUrl, // Store image URL
           Status: "follow-up",
         })
         .eq("id", selectedConsultation.id)
         .select();
 
-      if (error) throw new Error(`Error setting follow-up date: ${error.message}`);
-      console.log("Follow-up date and reason updated successfully:", data);
+      if (error) throw new Error(`Error setting follow-up: ${error.message}`);
+      console.log("Follow-up updated successfully:", data);
       await refreshAppointments();
       setFollowUpModalOpen(false);
       setSelectedConsultation(null);
       setFollowUpDate("");
       setFollowUpReason("");
+      setFollowUpImage(null);
+      setError(null);
     } catch (error) {
       console.error("Follow-up error:", error.message);
       setError(`An error occurred: ${error.message}`);
@@ -681,7 +708,20 @@ const ConsultationsContent = ({ dentistId }) => {
                   placeholder="Enter the reason for the follow-up (optional)"
                 />
               </label>
+              <label>
+                Follow-Up Image (optional):
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFollowUpImage(e.target.files[0])}
+                  className={styles.inputField}
+                />
+              </label>
+              {followUpImage && (
+                <p className={styles.fileName}>Selected: {followUpImage.name}</p>
+              )}
             </div>
+            {error && <p className={styles.error}>{error}</p>}
             <div className={styles.modalButtons}>
               <button className={styles.actionButton} onClick={handleSaveFollowUp}>
                 Save
@@ -691,6 +731,9 @@ const ConsultationsContent = ({ dentistId }) => {
                 onClick={() => {
                   setFollowUpModalOpen(false);
                   setFollowUpReason("");
+                  setFollowUpDate("");
+                  setFollowUpImage(null);
+                  setError(null);
                 }}
               >
                 Cancel
