@@ -1,4 +1,3 @@
-// src/components/PatientDashboard.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -14,7 +13,7 @@ const PatientDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDiagnosisModalOpen, setIsDiagnosisModalOpen] = useState(false);
   const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
-  const [currentDiagnosis, setCurrentDiagnosis] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
   const [dentists, setDentists] = useState([]);
   const [dentistAvailability, setDentistAvailability] = useState([]);
   const [allDentistAppointments, setAllDentistAppointments] = useState([]);
@@ -22,7 +21,6 @@ const PatientDashboard = () => {
   const [email, setEmail] = useState('');
   const [patientData, setPatientData] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [imageError, setImageError] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [followUpNotifications, setFollowUpNotifications] = useState([]);
   const [currentPageAppointments, setCurrentPageAppointments] = useState(1);
@@ -30,13 +28,12 @@ const PatientDashboard = () => {
   const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
   const [reasonToView, setReasonToView] = useState("");
   const [viewFollowUpReasonModalOpen, setViewFollowUpReasonModalOpen] = useState(false);
-  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "", image: "" }); // Added image
+  const [followUpDetailsToView, setFollowUpDetailsToView] = useState({ reason: "", date: "", image: "" });
   const appointmentsPerPage = 6;
   const historyPerPage = 3;
 
   const SUPABASE_STORAGE_URL = 'https://snvrykahnydcsdvfwfbw.supabase.co/storage/v1/object/public/';
 
-  // Helper function to convert UTC to Philippine Time (UTC+8) and format date-time
   const formatDateTimePhilippine = (utcDateString) => {
     const utcDate = new Date(utcDateString);
     return utcDate.toLocaleString("en-PH", {
@@ -213,8 +210,7 @@ const PatientDashboard = () => {
         return dateB - dateA || b.id - a.id;
       });
       setSelectedDiagnoses(sortedDiagnoses);
-      setCurrentDiagnosis(sortedDiagnoses[0]);
-      setImageError(false);
+      setImageErrors({});
       setIsDiagnosisModalOpen(true);
     } else {
       alert("No diagnosis record found for this consultation.");
@@ -224,12 +220,7 @@ const PatientDashboard = () => {
   const closeDiagnosisModal = () => {
     setIsDiagnosisModalOpen(false);
     setSelectedDiagnoses([]);
-    setCurrentDiagnosis(null);
-  };
-
-  const handleSelectDiagnosis = (diagnosis) => {
-    setCurrentDiagnosis(diagnosis);
-    setImageError(false);
+    setImageErrors({});
   };
 
   const handleSubmit = async (formData) => {
@@ -495,15 +486,18 @@ const PatientDashboard = () => {
     setFollowUpDetailsToView({
       reason: reason || "No reason provided.",
       date: followUpDate || null,
-      image: followUpImage || "", // Include FollowUpImage
+      image: followUpImage || "",
     });
     setViewFollowUpReasonModalOpen(true);
-    setImageError(false); // Reset image error state
+    setImageErrors((prev) => ({ ...prev, followUp: false }));
   };
 
-  const handleImageError = () => {
-    setImageError(true);
-    console.error('Image failed to load:', followUpDetailsToView.image || currentDiagnosis?.ImageUrl);
+  const handleImageError = (id) => {
+    setImageErrors((prev) => ({
+      ...prev,
+      [id]: true,
+    }));
+    console.error("Image failed to load for ID:", id);
   };
 
   const getFullImageUrl = (url) => {
@@ -777,7 +771,7 @@ const PatientDashboard = () => {
               </div>
             </>
           ) : (
-            <p className={styles.noData}>No dental history available yet.</p>
+            <p className={styles.noData}>No dental history available.</p>
           )}
         </section>
       </div>
@@ -806,49 +800,32 @@ const PatientDashboard = () => {
             </h3>
             {selectedDiagnoses && selectedDiagnoses.length > 0 ? (
               <>
-                <div style={{ marginBottom: "20px" }}>
-                  <label>
-                    <strong>Select Diagnosis Record:</strong>
-                    <select
-                      value={currentDiagnosis?.id || ""}
-                      onChange={(e) => {
-                        const selected = selectedDiagnoses.find(d => d.id === parseInt(e.target.value));
-                        handleSelectDiagnosis(selected);
-                      }}
-                      style={{ marginLeft: "10px", padding: "5px", width: "100%", maxWidth: "400px" }}
-                    >
-                      {selectedDiagnoses.map((diagnosis) => (
-                        <option key={diagnosis.id} value={diagnosis.id}>
-                          {`Diagnosis #${diagnosis.id} - ${diagnosis.InitialDiagnosis || "No Initial Diagnosis"}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                {currentDiagnosis && (
-                  <>
-                    <p><strong>Diagnosis ID:</strong> {currentDiagnosis.id}</p>
-                    <p><strong>Initial Diagnosis:</strong> {currentDiagnosis.InitialDiagnosis || "Not provided"}</p>
-                    <p><strong>Image:</strong></p>
-                    {imageError ? (
-                      <p style={{ color: 'red' }}>
-                        Unable to load image. URL: {getFullImageUrl(currentDiagnosis.ImageUrl)}
-                      </p>
+                {selectedDiagnoses.map((diagnosis) => (
+                  <div key={diagnosis.id} className={styles.diagnosisSection}>
+                    <h4>Diagnosis #{diagnosis.id}</h4>
+                    <p><strong>Initial Diagnosis:</strong> {diagnosis.InitialDiagnosis || "Not provided"}</p>
+                    <p><strong>Confidence:</strong> {(diagnosis.Confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Final Diagnosis:</strong> {diagnosis.FinalDiagnosis || "Not provided"}</p>
+                    <p><strong>Final Diagnosis Description:</strong> {diagnosis.FinalDiagnosisDesc || "Not provided"}</p>
+                    {diagnosis.ImageUrl ? (
+                      imageErrors[diagnosis.id] ? (
+                        <p style={{ color: 'red' }}>
+                          Unable to load image. URL: {getFullImageUrl(diagnosis.ImageUrl)}
+                        </p>
+                      ) : (
+                        <img
+                          src={getFullImageUrl(diagnosis.ImageUrl)}
+                          alt={`Diagnosis ${diagnosis.id}`}
+                          style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+                          onError={() => handleImageError(diagnosis.id)}
+                          onLoad={() => console.log('Image loaded successfully')}
+                        />
+                      )
                     ) : (
-                      <img
-                        src={getFullImageUrl(currentDiagnosis.ImageUrl)}
-                        alt="Diagnosis"
-                        style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                        onError={handleImageError}
-                        onLoad={() => console.log('Image loaded successfully')}
-                      />
+                      <p>No image available.</p>
                     )}
-                    <p><strong>Confidence:</strong> {(currentDiagnosis.Confidence * 100).toFixed(2)}%</p>
-                    <p><strong>Final Diagnosis:</strong> {currentDiagnosis.FinalDiagnosis || 'Not provided'}</p>
-                    <p><strong>Final Diagnosis Description:</strong> {currentDiagnosis.FinalDiagnosisDesc || 'Not provided'}</p>
-                  </>
-                )}
+                  </div>
+                ))}
                 <div className={styles.modalButtons}>
                   <button
                     className={styles.actionButton}
@@ -897,7 +874,7 @@ const PatientDashboard = () => {
               {followUpDetailsToView.image && (
                 <>
                   <p><strong>Image:</strong></p>
-                  {imageError ? (
+                  {imageErrors.followUp ? (
                     <p style={{ color: 'red' }}>
                       Unable to load image. URL: {getFullImageUrl(followUpDetailsToView.image)}
                     </p>
@@ -905,8 +882,8 @@ const PatientDashboard = () => {
                     <img
                       src={getFullImageUrl(followUpDetailsToView.image)}
                       alt="Follow-Up Image"
-                      style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                      onError={handleImageError}
+                      style={{ maxWidth: '200px', height: 'auto', borderRadius: '8px' }}
+                      onError={() => handleImageError('followUp')}
                       onLoad={() => console.log('Follow-Up Image loaded successfully')}
                     />
                   )}
@@ -918,8 +895,8 @@ const PatientDashboard = () => {
                 className={styles.actionButton}
                 onClick={() => {
                   setViewFollowUpReasonModalOpen(false);
-                  setFollowUpDetailsToView({ reason: "", date: "", image: "" });
-                  setImageError(false);
+                  setFollowUpDetailsToView({ reason: "", date: null, image: "" });
+                  setImageErrors((prev) => ({ ...prev, followUp: false }));
                 }}
               >
                 Close
