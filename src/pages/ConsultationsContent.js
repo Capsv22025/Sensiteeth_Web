@@ -1,4 +1,3 @@
-// src/components/ConsultationsContent.js
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import styles from "./DentistDashboard.module.css";
@@ -7,12 +6,9 @@ const ConsultationsContent = ({ dentistId }) => {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
-  const [currentDiagnosis, setCurrentDiagnosis] = useState(null);
-  const [finalDiagnosis, setFinalDiagnosis] = useState("");
-  const [finalDiagnosisDesc, setFinalDiagnosisDesc] = useState("");
-  const [dentistDiagnosis, setDentistDiagnosis] = useState("");
+  const [diagnosisInputs, setDiagnosisInputs] = useState({});
+  const [imageErrors, setImageErrors] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -22,7 +18,7 @@ const ConsultationsContent = ({ dentistId }) => {
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpReason, setFollowUpReason] = useState("");
-  const [followUpImage, setFollowUpImage] = useState(null); // New state for image file
+  const [followUpImage, setFollowUpImage] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -31,7 +27,8 @@ const ConsultationsContent = ({ dentistId }) => {
   const [reasonToView, setReasonToView] = useState("");
   const recordsPerPage = 10;
 
-  const SUPABASE_STORAGE_URL = "https://snvrykahnydcsdvfwfbw.supabase.co/storage/v1/object/public/";
+  const SUPABASE_STORAGE_URL =
+    "https://snvrykahnydcsdvfwfbw.supabase.co/storage/v1/object/public/";
 
   useEffect(() => {
     const fetchUserRoleAndConsultations = async () => {
@@ -39,7 +36,9 @@ const ConsultationsContent = ({ dentistId }) => {
         setLoading(true);
         setError(null);
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           setError("No user session found.");
           setLoading(false);
@@ -66,7 +65,9 @@ const ConsultationsContent = ({ dentistId }) => {
 
         const { data: consultationData, error: consultationError } = await supabase
           .from("Consultation")
-          .select("*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)")
+          .select(
+            "*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)"
+          )
           .eq("DentistId", dentistId)
           .order("AppointmentDate", { ascending: true });
 
@@ -101,14 +102,17 @@ const ConsultationsContent = ({ dentistId }) => {
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (appointment) => appointment.Status.toLowerCase() === statusFilter.toLowerCase()
+        (appointment) =>
+          appointment.Status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
     if (searchTerm.trim() !== "") {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter((appointment) => {
-        const fullName = `${appointment.Patient.FirstName} ${appointment.Patient.LastName}`.toLowerCase();
+        const fullName = `${appointment
+          .Patient.FirstName} ${appointment
+          .Patient.LastName}`.toLowerCase();
         return fullName.includes(searchLower);
       });
     }
@@ -171,22 +175,27 @@ const ConsultationsContent = ({ dentistId }) => {
   };
 
   const handleSetComplete = async (appointmentId) => {
-    if (!window.confirm("Are you sure you want to mark this consultation as complete?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to mark this consultation as complete?"
+      )
+    ) {
       return;
     }
 
     try {
       const { data, error } = await supabase
         .from("Consultation")
-        .update({ 
-          Status: "complete", 
+        .update({
+          Status: "complete",
           followupdate: null,
-          FollowUpReason: null
+          FollowUpReason: null,
         })
         .eq("id", appointmentId)
         .select();
 
-      if (error) throw new Error(`Error setting consultation to complete: ${error.message}`);
+      if (error)
+        throw new Error(`Error setting consultation to complete: ${error.message}`);
       console.log("Consultation set to complete successfully:", data);
       await refreshAppointments();
     } catch (error) {
@@ -199,7 +208,9 @@ const ConsultationsContent = ({ dentistId }) => {
     try {
       const { data: updatedAppointments, error: refreshError } = await supabase
         .from("Consultation")
-        .select("*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)")
+        .select(
+          "*, Patient(FirstName, LastName), Diagnosis(id, ConsultationId, InitialDiagnosis, FinalDiagnosis, FinalDiagnosisDesc, DentistDiagnosis, Accuracy, Confidence, ImageUrl, JawPosition, ToothType)"
+        )
         .eq("DentistId", dentistId)
         .order("AppointmentDate", { ascending: true });
 
@@ -224,11 +235,17 @@ const ConsultationsContent = ({ dentistId }) => {
         return dateB - dateA || b.id - a.id;
       });
       setSelectedDiagnoses(sortedDiagnoses);
-      setCurrentDiagnosis(sortedDiagnoses[0]);
-      setFinalDiagnosis(sortedDiagnoses[0].FinalDiagnosis || "");
-      setFinalDiagnosisDesc(sortedDiagnoses[0].FinalDiagnosisDesc || "");
-      setDentistDiagnosis(sortedDiagnoses[0].DentistDiagnosis || "");
-      setImageError(false);
+      // Initialize input fields for each diagnosis
+      const initialInputs = sortedDiagnoses.reduce((acc, diagnosis) => {
+        acc[diagnosis.id] = {
+          dentistDiagnosis: diagnosis.DentistDiagnosis || "",
+          finalDiagnosis: diagnosis.FinalDiagnosis || "",
+          finalDiagnosisDesc: diagnosis.FinalDiagnosisDesc || "",
+        };
+        return acc;
+      }, {});
+      setDiagnosisInputs(initialInputs);
+      setImageErrors({});
       console.log("Opening modal with Diagnoses:", sortedDiagnoses);
       setIsModalOpen(true);
     } else {
@@ -236,26 +253,27 @@ const ConsultationsContent = ({ dentistId }) => {
     }
   };
 
-  const handleSelectDiagnosis = (diagnosis) => {
-    setCurrentDiagnosis(diagnosis);
-    setFinalDiagnosis(diagnosis.FinalDiagnosis || "");
-    setFinalDiagnosisDesc(diagnosis.FinalDiagnosisDesc || "");
-    setDentistDiagnosis(diagnosis.DentistDiagnosis || "");
-    setImageError(false);
+  const handleInputChange = (diagnosisId, field, value) => {
+    setDiagnosisInputs((prev) => ({
+      ...prev,
+      [diagnosisId]: {
+        ...prev[diagnosisId],
+        [field]: value,
+      },
+    }));
   };
 
-  const handleUpdateDiagnosis = async () => {
-    if (!currentDiagnosis) return;
-
+  const handleUpdateDiagnosis = async (diagnosisId) => {
     try {
+      const inputs = diagnosisInputs[diagnosisId];
       const { data: diagnosisData, error: diagnosisError } = await supabase
         .from("Diagnosis")
         .update({
-          FinalDiagnosis: finalDiagnosis,
-          FinalDiagnosisDesc: finalDiagnosisDesc,
-          DentistDiagnosis: dentistDiagnosis || null,
+          FinalDiagnosis: inputs.finalDiagnosis,
+          FinalDiagnosisDesc: inputs.finalDiagnosisDesc,
+          DentistDiagnosis: inputs.dentistDiagnosis || null,
         })
-        .eq("id", currentDiagnosis.id)
+        .eq("id", diagnosisId)
         .select();
 
       if (diagnosisError) {
@@ -265,12 +283,6 @@ const ConsultationsContent = ({ dentistId }) => {
       console.log("Diagnosis updated successfully:", diagnosisData);
 
       await refreshAppointments();
-      setIsModalOpen(false);
-      setSelectedDiagnoses([]);
-      setCurrentDiagnosis(null);
-      setFinalDiagnosis("");
-      setFinalDiagnosisDesc("");
-      setDentistDiagnosis("");
     } catch (error) {
       console.error("Update error:", error.message);
       setError(`An error occurred: ${error.message}`);
@@ -279,9 +291,13 @@ const ConsultationsContent = ({ dentistId }) => {
 
   const handleSetFollowUp = (appointment) => {
     setSelectedConsultation(appointment);
-    setFollowUpDate(appointment.followupdate ? new Date(appointment.followupdate).toISOString().slice(0, 16) : "");
+    setFollowUpDate(
+      appointment.followupdate
+        ? new Date(appointment.followupdate).toISOString().slice(0, 16)
+        : ""
+    );
     setFollowUpReason(appointment.FollowUpReason || "");
-    setFollowUpImage(null); // Reset image on modal open
+    setFollowUpImage(null);
     setFollowUpModalOpen(true);
   };
 
@@ -291,9 +307,8 @@ const ConsultationsContent = ({ dentistId }) => {
     try {
       let imageUrl = null;
 
-      // Handle image upload if provided
       if (followUpImage) {
-        const fileExtension = followUpImage.name.split('.').pop();
+        const fileExtension = followUpImage.name.split(".").pop();
         const fileName = `followup-${selectedConsultation.id}-${Date.now()}.${fileExtension}`;
         const filePath = `FollowUpFiles/${fileName}`;
 
@@ -305,17 +320,15 @@ const ConsultationsContent = ({ dentistId }) => {
           throw new Error(`Image upload failed: ${uploadError.message}`);
         }
 
-        // Generate public URL for the uploaded image
         imageUrl = `${SUPABASE_STORAGE_URL}SensiteethBucket/${filePath}`;
       }
 
-      // Update Consultation with follow-up details and image URL
       const { data, error } = await supabase
         .from("Consultation")
         .update({
           followupdate: followUpDate ? new Date(followUpDate).toISOString() : null,
           FollowUpReason: followUpReason.trim() || null,
-          FollowUpImage: imageUrl, // Store image URL
+          FollowUpImage: imageUrl,
           Status: "follow-up",
         })
         .eq("id", selectedConsultation.id)
@@ -341,9 +354,12 @@ const ConsultationsContent = ({ dentistId }) => {
     setViewReasonModalOpen(true);
   };
 
-  const handleImageError = () => {
-    setImageError(true);
-    console.error("Image failed to load:", currentDiagnosis?.ImageUrl);
+  const handleImageError = (diagnosisId) => {
+    setImageErrors((prev) => ({
+      ...prev,
+      [diagnosisId]: true,
+    }));
+    console.error("Image failed to load for diagnosis ID:", diagnosisId);
   };
 
   const getFullImageUrl = (url) => {
@@ -380,7 +396,9 @@ const ConsultationsContent = ({ dentistId }) => {
       </h1>
       <div className={styles.filterContainer}>
         <div className={styles.filterGroup}>
-          <label className={styles.filterLabel1} htmlFor="statusFilter">Filter by Status: </label>
+          <label className={styles.filterLabel1} htmlFor="statusFilter">
+            Filter by Status:{" "}
+          </label>
           <select
             id="statusFilter"
             value={statusFilter}
@@ -397,7 +415,9 @@ const ConsultationsContent = ({ dentistId }) => {
           </select>
         </div>
         <div className={styles.searchGroup}>
-          <label className={styles.filterLabel2} htmlFor="patientSearch">Search by Patient Name: </label>
+          <label className={styles.filterLabel2} htmlFor="patientSearch">
+            Search by Patient Name:{" "}
+          </label>
           <input
             id="patientSearch"
             type="text"
@@ -423,34 +443,48 @@ const ConsultationsContent = ({ dentistId }) => {
             <tbody>
               {currentRecords.map((appointment) => {
                 const statusLower = appointment.Status.toLowerCase();
-                const canViewDiagnosis = ["partially complete", "complete", "follow-up"].includes(statusLower);
-                const canSetComplete = statusLower === "follow-up" || statusLower === "partially complete";
+                const canViewDiagnosis = [
+                  "partially complete",
+                  "complete",
+                  "follow-up",
+                ].includes(statusLower);
+                const canSetComplete =
+                  statusLower === "follow-up" ||
+                  statusLower === "partially complete";
                 return (
                   <tr key={appointment.id}>
                     <td>
-                      {new Date(appointment.AppointmentDate).toLocaleString("en-PH", {
-                        timeZone: "Asia/Manila",
-                        year: "numeric",
-                        month: "numeric",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "numeric",
-                        hour12: true,
-                      })}
+                      {new Date(appointment.AppointmentDate).toLocaleString(
+                        "en-PH",
+                        {
+                          timeZone: "Asia/Manila",
+                          year: "numeric",
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "numeric",
+                          hour12: true,
+                        }
+                      )}
                     </td>
-                    <td>{`${appointment.Patient.FirstName} ${appointment.Patient.LastName}`}</td>
+                    <td>{`${appointment
+                      .Patient.FirstName} ${appointment
+                      .Patient.LastName}`}</td>
                     <td>{appointment.Status}</td>
                     <td>
                       {appointment.followupdate
-                        ? new Date(appointment.followupdate).toLocaleString("en-PH", {
-                            timeZone: "Asia/Manila",
-                            year: "numeric",
-                            month: "numeric",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "numeric",
-                            hour12: true,
-                          })
+                        ? new Date(appointment.followupdate).toLocaleString(
+                            "en-PH",
+                            {
+                              timeZone: "Asia/Manila",
+                              year: "numeric",
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "numeric",
+                              hour12: true,
+                            }
+                          )
                         : "Not set"}
                     </td>
                     <td>
@@ -477,7 +511,9 @@ const ConsultationsContent = ({ dentistId }) => {
                         canViewDiagnosis && (
                           <button
                             className={styles.actionButton}
-                            onClick={() => handleViewDiagnosis(appointment.Diagnosis)}
+                            onClick={() =>
+                              handleViewDiagnosis(appointment.Diagnosis)
+                            }
                           >
                             View/Edit Diagnosis
                           </button>
@@ -504,7 +540,11 @@ const ConsultationsContent = ({ dentistId }) => {
                         appointment.Status === "rejected" && (
                           <button
                             className={styles.actionButton}
-                            onClick={() => handleViewRejectionReason(appointment.rejection_reason)}
+                            onClick={() =>
+                              handleViewRejectionReason(
+                                appointment.rejection_reason
+                              )
+                            }
                           >
                             View Reason
                           </button>
@@ -523,17 +563,19 @@ const ConsultationsContent = ({ dentistId }) => {
             >
               Previous
             </button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`${styles.paginationButton} ${
-                  currentPage === page ? styles.paginationButtonActive : ""
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+              (page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`${styles
+                    .paginationButton} ${currentPage ===
+                    page ? styles.paginationButtonActive : ""}`}
+                >
+                  {page}
+                </button>
+              )
+            )}
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
@@ -543,7 +585,8 @@ const ConsultationsContent = ({ dentistId }) => {
             </button>
           </div>
           <div className={styles.paginationInfo}>
-            Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of {totalRecords} records
+            Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of{" "}
+            {totalRecords} records
           </div>
         </>
       ) : (
@@ -559,115 +602,128 @@ const ConsultationsContent = ({ dentistId }) => {
             </h1>
             {selectedDiagnoses && selectedDiagnoses.length > 0 ? (
               <>
-                <div className={styles.diagnosisSelect} style={{ marginBottom: "20px" }}>
-                  <label>
-                    <strong>Select Diagnosis Record:</strong>
-                    <select
-                      className={styles.filterSelect}
-                      value={currentDiagnosis?.id || ""}
-                      onChange={(e) => {
-                        const selected = selectedDiagnoses.find((d) => d.id === parseInt(e.target.value));
-                        handleSelectDiagnosis(selected);
-                      }}
-                      style={{ marginLeft: "10px", padding: "5px", width: "100%", maxWidth: "400px" }}
-                    >
-                      {selectedDiagnoses.map((diagnosis) => (
-                        <option key={diagnosis.id} value={diagnosis.id}>
-                          {`Diagnosis #${diagnosis.id} - ${diagnosis.InitialDiagnosis || "No Diagnosis"}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <hr className={styles.modalDivider} />
-                {currentDiagnosis && (
-                  <div className={styles.modalcont}>
-                    <div className={styles.txtfieldcont}>
-                      <p>
-                        <strong>Diagnosis ID:</strong> {currentDiagnosis.id}
-                      </p>
-                      <p>
-                        <strong>System Diagnosis:</strong>{" "}
-                        {currentDiagnosis.InitialDiagnosis || "Not specified"}
-                      </p>
-                      <p>
-                        <strong>Jaw Position:</strong>{" "}
-                        {currentDiagnosis.JawPosition || "Not specified"}
-                      </p>
-                      <p>
-                        <strong>Tooth Type:</strong>{" "}
-                        {currentDiagnosis.ToothType || "Not specified"}
-                      </p>
-                      <p>
-                        <strong>Confidence:</strong>{" "}
-                        {(currentDiagnosis.Confidence * 100).toFixed(2)}%
-                      </p>
-                      <label>
-                        Dentist Diagnosis (optional):
-                        <select
-                          value={dentistDiagnosis}
-                          onChange={(e) => setDentistDiagnosis(e.target.value)}
-                          className={styles.filterSelect}
-                          style={{ width: "100%", padding: "5px", marginTop: "5px" }}
-                        >
-                          <option value="">-- Select Diagnosis --</option>
-                          <option value="Tooth decay">Tooth decay</option>
-                          <option value="Gum disease">Gum disease</option>
-                          <option value="Gingivitis">Gingivitis</option>
-                          <option value="Tooth Erosion">Tooth Erosion</option>
-                          <option value="Tooth Sensitivity">Tooth Sensitivity</option>
-                          <option value="Cracked or fractured teeth">Cracked or fractured teeth</option>
-                          <option value="Malocclusion">Malocclusion</option>
-                          <option value="Tooth Abcess">Tooth Abcess</option>
-                          <option value="Impacted Tooth">Impacted Tooth</option>
-                        </select>
-                      </label>
-                      <label>
-                        Additional Diagnosis (optional):
-                        <input
-                          type="text"
-                          value={finalDiagnosis}
-                          onChange={(e) => setFinalDiagnosis(e.target.value)}
-                          className={styles.inputField}
-                        />
-                      </label>
-                      <label>
-                        Additional Diagnosis Description (optional):
-                        <textarea
-                          value={finalDiagnosisDesc}
-                          onChange={(e) => setFinalDiagnosisDesc(e.target.value)}
-                          className={styles.textareaField}
-                        />
-                      </label>
-                    </div>
-                    <div className={styles.imgcont}>
-                      {imageError ? (
-                        <p style={{ color: "red" }}>
-                          Unable to load image. URL: {getFullImageUrl(currentDiagnosis.ImageUrl)}
+                {selectedDiagnoses.map((diagnosis) => (
+                  <div key={diagnosis.id} className={styles.diagnosisSection}>
+                    <h3>Diagnosis #{diagnosis.id}</h3>
+                    <div className={styles.modalcont}>
+                      <div className={styles.txtfieldcont}>
+                        <p>
+                          <strong>System Diagnosis:</strong>{" "}
+                          {diagnosis.InitialDiagnosis || "Not specified"}
                         </p>
-                      ) : (
-                        <img
-                          src={getFullImageUrl(currentDiagnosis.ImageUrl)}
-                          alt="Diagnosis"
-                          style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
-                          onError={handleImageError}
-                          onLoad={() => console.log("Image loaded successfully")}
-                        />
-                      )}
+                        <p>
+                          <strong>Jaw Position:</strong>{" "}
+                          {diagnosis.JawPosition || "Not specified"}
+                        </p>
+                        <p>
+                          <strong>Tooth Type:</strong>{" "}
+                          {diagnosis.ToothType || "Not specified"}
+                        </p>
+                        <p>
+                          <strong>Confidence:</strong>{" "}
+                          {(diagnosis.Confidence * 100).toFixed(2)}%
+                        </p>
+                        <label>
+                          Dentist Diagnosis (optional):
+                          <select
+                            value={diagnosisInputs[diagnosis.id]?.dentistDiagnosis || ""}
+                            onChange={(e) =>
+                              handleInputChange(
+                                diagnosis.id,
+                                "dentistDiagnosis",
+                                e.target.value
+                              )
+                            }
+                            className={styles.filterSelect}
+                            style={{ width: "100%", padding: "5px", marginTop: "5px" }}
+                          >
+                            <option value="">-- Select Diagnosis --</option>
+                            <option value="Tooth decay">Tooth decay</option>
+                            <option value="Gum disease">Gum disease</option>
+                            <option value="Gingivitis">Gingivitis</option>
+                            <option value="Tooth Erosion">Tooth Erosion</option>
+                            <option value="Tooth Sensitivity">
+                              Tooth Sensitivity
+                            </option>
+                            <option value="Cracked or fractured teeth">
+                              Cracked or fractured teeth
+                            </option>
+                            <option value="Malocclusion">Malocclusion</option>
+                            <option value="Tooth Abcess">Tooth Abcess</option>
+                            <option value="Impacted Tooth">Impacted Tooth</option>
+                          </select>
+                        </label>
+                        <label>
+                          Additional Diagnosis (optional):
+                          <input
+                            type="text"
+                            value={diagnosisInputs[diagnosis.id]?.finalDiagnosis || ""}
+                            onChange={(e) =>
+                              handleInputChange(
+                                diagnosis.id,
+                                "finalDiagnosis",
+                                e.target.value
+                              )
+                            }
+                            className={styles.inputField}
+                          />
+                        </label>
+                        <label>
+                          Additional Diagnosis Description (optional):
+                          <textarea
+                            value={
+                              diagnosisInputs[diagnosis.id]?.finalDiagnosisDesc || ""
+                            }
+                            onChange={(e) =>
+                              handleInputChange(
+                                diagnosis.id,
+                                "finalDiagnosisDesc",
+                                e.target.value
+                              )
+                            }
+                            className={styles.textareaField}
+                          />
+                        </label>
+                      </div>
+                      <div className={styles.imgcont}>
+                        {imageErrors[diagnosis.id] ? (
+                          <p style={{ color: "red" }}>
+                            Unable to load image. URL:{" "}
+                            {getFullImageUrl(diagnosis.ImageUrl)}
+                          </p>
+                        ) : (
+                          <img
+                            src={getFullImageUrl(diagnosis.ImageUrl)}
+                            alt={`Diagnosis ${diagnosis.id}`}
+                            style={{
+                              maxWidth: "100%",
+                              height: "auto",
+                              borderRadius: "8px",
+                            }}
+                            onError={() => handleImageError(diagnosis.id)}
+                            onLoad={() => console.log("Image loaded successfully")}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.modalButtons}>
+                      <button
+                        className={styles.actionButton}
+                        onClick={() => handleUpdateDiagnosis(diagnosis.id)}
+                      >
+                        Save
+                      </button>
                     </div>
                   </div>
-                )}
+                ))}
                 <div className={styles.modalButtons}>
-                  <button className={styles.actionButton} onClick={handleUpdateDiagnosis}>
-                    Save
-                  </button>
                   <button
                     className={styles.actionButton}
                     onClick={() => {
                       setIsModalOpen(false);
                       setSelectedDiagnoses([]);
-                      setCurrentDiagnosis(null);
-                      setDentistDiagnosis("");
+                      setDiagnosisInputs({});
+                      setImageErrors({});
                     }}
                   >
                     Close
@@ -749,7 +805,7 @@ const ConsultationsContent = ({ dentistId }) => {
             <h3>Reject Consultation</h3>
             <div className={styles.modalcont}>
               <label>
-                Reason for Rejection (required):
+                Reason for Rejection:
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
